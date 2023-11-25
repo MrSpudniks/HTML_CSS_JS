@@ -3,15 +3,15 @@ let logCycleMs = false;
 let logSelectedElement = false;
 let logTemp = false;
 
+
+
 // init
 let sim = false;
 let grid = document.getElementById("grid");
-let x = 1;
-let y = 1;
-let maxX = 10;
-let cells = maxX**2;
-let KA = 1;
-let D = 1;
+const maxX = 15;
+const cells = maxX**2;
+const KA = 1;
+const D = 1;
 let cycleMs = 50;
 let omni = false;
 let timeSinceLastScroll = 1;
@@ -22,11 +22,17 @@ let scrollLength = 1;
 let cloneIt = 1;
 let hex = ["1","2","3","4","5","6","7","8","9","a","b","c","d","e","f"]
 let selectedElement = NaN;
+let selectedTemp = 50;
 let viewW = window.innerWidth;
 let viewH = window.innerHeight;
 grid.style.height = `${Math.min(viewH, viewW)}px`;
 grid.style.width = `${Math.min(viewH, viewW)}px`;
 grid.style.fontSize = `${Math.min(viewH, viewW)/50}px`;
+let mouseDown = false;
+let viewMode = 0;
+let clickMode = "setTemp"
+document.getElementById("setTemp").style.backgroundColor = "#383838";
+document.getElementById("setTemp").style.borderColor = "#484848";
 
 
 
@@ -34,9 +40,9 @@ grid.style.fontSize = `${Math.min(viewH, viewW)/50}px`;
 window.addEventListener("resize", () => {
     viewW = window.innerWidth;
     viewH = window.innerHeight;
-    grid.style.height = `${Math.min(viewH, viewW)}px`;
-    grid.style.width = `${Math.min(viewH, viewW)}px`;
-    grid.style.fontSize = `${Math.min(viewH, viewW)/50}px`;
+    grid.style.height = `${Math.min(viewH, viewW - 210)}px`;
+    grid.style.width = `${Math.min(viewH, viewW - 210)}px`;
+    grid.style.fontSize = `${Math.min(viewH, viewW - 210)/50}px`;
 });
 
 
@@ -54,11 +60,15 @@ document.addEventListener("onwheel" in document ? "wheel" : "mousewheel", functi
     if (!(selectedElement == null)) {
         temp = parseInt(document.getElementById(selectedElement).getAttribute("temp"));
         document.getElementById(selectedElement).setAttribute("temp", Math.max(Math.min(temp + scrollLength, 100), 0));
+        if (selectedElement == "setTemp") {
+            selectedTemp = temp;
+            document.getElementById("setTemp").firstChild.innerHTML = selectedTemp;
+        };
     };
 
     if (logTemp) {
-        console.log(temp, scrollLength)
-    }
+        console.log(temp, scrollLength);
+    };
 });
 
 
@@ -66,14 +76,13 @@ document.addEventListener("onwheel" in document ? "wheel" : "mousewheel", functi
 // for loop to generate cells
 for (let i = 1; i < (cells + 1); i++) {
     newCell = document.createElement("div");
-    x = i % 10;
-    y = Math.floor(i / 10);
     newCell.id = cloneIt;
     cloneIt++;
     newCell.classList.add('grid');
     grid.appendChild(newCell);
     newCell.setAttribute("onmouseover", "setElement(id)");
     newCell.setAttribute("onmouseout", "resetElement()");
+    newCell.setAttribute("onmousedown", "clickSet(id)");
     newCell.setAttribute("temp", 50);
     newP = document.createElement("p");
     newP.id = `${cloneIt - 1}p`;
@@ -87,6 +96,12 @@ for (let i = 1; i < (cells + 1); i++) {
 // select element to be altered
 function setElement(id) {
     selectedElement = id;
+
+    if (mouseDown) {
+        if (clickMode == "setTemp") {
+            document.getElementById(id).setAttribute("temp", selectedTemp);
+        };
+    };
 
     if (logSelectedElement) {
         console.log(selectedElement);
@@ -102,17 +117,20 @@ function resetElement() {
 };
 
 
+
 // heat transfer cycle\
 function cycle() {
     time = new Date()
     
     if (sim) {
         for (let i = 1; i < (cells + 1); i++) {
-            calcTransfer(i);
+                calcTransfer(i);
         };
 
         for (let i = 1; i < (cells + 1); i++) {
-            setTransfer(i);
+            if (!document.getElementById(i).hasAttribute("source")) {
+                setTransfer(i);
+            };
         };
     };
 
@@ -128,6 +146,7 @@ function cycle() {
 
 
 
+// calculation of temperature change
 function calcTransfer(i) {
     i = parseInt(i)
     let tempSum = 0;
@@ -154,27 +173,112 @@ function calcTransfer(i) {
 };
 
 
+
+// set all cells temperature based on calculations
 function setTransfer(i) {
     element = document.getElementById(i);
     element.setAttribute("temp", parseFloat(element.getAttribute("temp")) + parseFloat(element.getAttribute("calcTemp")))
 };
 
 
+
+// set decorative colors of all cells and 
 function setColor(i) {
     element = document.getElementById(i);
     temp = element.getAttribute("temp");
-    let r = Math.round(temp * 2.56);
-    let b = 256 - r;
-    element.style.borderColor = `rgb(${r}, 32, ${b})`;
-    document.getElementById(`${i}p`).style.color = `rgb(${r}, 32, ${b})`;
-    document.getElementById(`${i}p`).innerHTML = Math.round(temp)
+    let r = Math.round((temp * 1.546354488838) ** 1.1);
+    let b = Math.round(((100 - temp) * 1.546354488838) ** 1.1);
+
+    if (element.hasAttribute("source")) {
+        element.style.borderColor = "#202020";
+    } else {
+        element.style.borderColor = `rgb(${r}, 64, ${b})`;
+    };
+
+    document.getElementById(`${i}p`).style.color = `rgb(${r}, 64, ${b})`;
+    document.getElementById(`${i}p`).innerHTML = Math.round(temp);
+
+    if (viewMode == 1) {
+        document.getElementById(i).style.backgroundColor = `rgb(${r}, 64, ${b})`;
+    } else {
+        document.getElementById(i).style.backgroundColor = `#303030`;
+    }
 };
 
 
 
+// start / stop simulation with Space key
+document.addEventListener('keydown', (event) => {
+    if (event.key = "space") {
+        if (sim) {
+            sim = false;
+            document.getElementById("pause").firstChild.innerHTML = "play"
+        } else {
+            sim = true;
+            document.getElementById("pause").firstChild.innerHTML = "stop"
+        };
+    };
+
+
+  }, false);
 
 
 
+// control panel
+function set() {
+    for (let i = 1; i < (cells + 1); i++) {
+        document.getElementById(i).setAttribute("temp", selectedTemp);
+    };
+};
+
+function pause() {
+    if (sim) {
+        sim = false;
+        document.getElementById("pause").firstChild.innerHTML = "Play"
+    } else {
+        sim = true;
+        document.getElementById("pause").firstChild.innerHTML = "Stop"
+    };
+};
+
+function clickSet(id) {
+    if (clickMode == "setTemp") {
+        document.getElementById(id).setAttribute("temp", selectedTemp);
+    } else if (clickMode == "source") {
+        if (document.getElementById(id).hasAttribute("source")) {
+            document.getElementById(id).removeAttribute("source")
+        } else {
+            document.getElementById(id).setAttribute("source", true);
+        };
+    };
+};
+
+document.body.onmousedown = function() { 
+    mouseDown = true;
+};
+  document.body.onmouseup = function() {
+    mouseDown = false;
+};
+
+function view() {
+    viewMode = (viewMode + 1) % 2;
+};
+
+function setTemp() {
+    clickMode = "setTemp";
+    document.getElementById("setTemp").style.backgroundColor = "#383838";
+    document.getElementById("setTemp").style.borderColor = "#484848";
+    document.getElementById("source").style.backgroundColor = "#404040";
+    document.getElementById("source").style.borderColor = "#505050";
+};
+
+function source() {
+    clickMode = "source";
+    document.getElementById("source").style.backgroundColor = "#383838"
+    document.getElementById("source").style.borderColor = "#484848"
+    document.getElementById("setTemp").style.backgroundColor = "#404040"
+    document.getElementById("setTemp").style.borderColor = "#505050"
+};
 
 
 setInterval(cycle, cycleMs);
