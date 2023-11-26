@@ -16,7 +16,8 @@ body {
 
 #grid {
     display: grid;
-    grid-template-columns: repeat(15, auto);
+    grid-template-columns: repeat(15, minmax(0, 1fr));
+    grid-template-rows: repeat(15, minmax(0, 1fr));
     margin: 0px;
     height: 100vh;
     width: 80vw;

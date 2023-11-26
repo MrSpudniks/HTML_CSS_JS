@@ -23,6 +23,7 @@ let cloneIt = 1;
 let hex = ["1","2","3","4","5","6","7","8","9","a","b","c","d","e","f"]
 let selectedElement = NaN;
 let selectedTemp = 50;
+let speed = 1.0;
 let viewW = window.innerWidth;
 let viewH = window.innerHeight;
 grid.style.height = `${Math.min(viewH, viewW)}px`;
@@ -57,7 +58,14 @@ document.addEventListener("onwheel" in document ? "wheel" : "mousewheel", functi
     timeAtLastScroll = currentTime;
     scrollLength = Math.round(e.wheel * Math.max(1, 100 / timeSinceLastScroll));
 
-    if (!(selectedElement == null)) {
+    if (selectedElement == "setSpeed") {
+
+        speed = parseFloat(document.getElementById("setSpeed").getAttribute("speed"));
+        document.getElementById(selectedElement).setAttribute("speed", Math.round(Math.max(Math.min(speed + (scrollLength / 10), 2), 0.1) * 10) / 10);
+        document.getElementById("setSpeed").firstChild.innerHTML = `${speed}x`;
+
+    } else if (!(selectedElement == null)) {
+
         temp = parseInt(document.getElementById(selectedElement).getAttribute("temp"));
         document.getElementById(selectedElement).setAttribute("temp", Math.max(Math.min(temp + scrollLength, 100), 0));
         if (selectedElement == "setTemp") {
@@ -65,6 +73,7 @@ document.addEventListener("onwheel" in document ? "wheel" : "mousewheel", functi
             document.getElementById("setTemp").firstChild.innerHTML = selectedTemp;
         };
     };
+
 
     if (logTemp) {
         console.log(temp, scrollLength);
@@ -154,19 +163,19 @@ function calcTransfer(i) {
     temp = element.getAttribute("temp");
 
     if (i > maxX) {
-        tempSum = tempSum + ((document.getElementById(`${i - maxX}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs))
+        tempSum = tempSum + ((document.getElementById(`${i - maxX}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed)
     };
 
     if (i <= (cells - maxX)) {
-        tempSum = tempSum + ((document.getElementById(`${i + maxX}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs))
+        tempSum = tempSum + ((document.getElementById(`${i + maxX}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed)
     };
 
     if ((i % maxX) != 1) {
-        tempSum = tempSum + ((document.getElementById(`${i - 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs))
+        tempSum = tempSum + ((document.getElementById(`${i - 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed)
     };
 
     if (!(i % maxX) == 0) {
-        tempSum = tempSum + ((document.getElementById(`${i + 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs))
+        tempSum = tempSum + ((document.getElementById(`${i + 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed)
     };
 
     element.setAttribute("calcTemp", tempSum)
