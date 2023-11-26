@@ -12,7 +12,7 @@ const maxX = 15;
 const cells = maxX**2;
 const KA = 1;
 const D = 1;
-let cycleMs = 50;
+let cycleMs = 5;
 let omni = false;
 let timeSinceLastScroll = 1;
 let timeAtLastScroll = 1;
@@ -30,7 +30,8 @@ grid.style.height = `${Math.min(viewH, viewW)}px`;
 grid.style.width = `${Math.min(viewH, viewW)}px`;
 grid.style.fontSize = `${Math.min(viewH, viewW)/50}px`;
 let mouseDown = false;
-let viewMode = 0;
+let viewModeIndex = 0;
+let viewMode = "temp"
 let clickMode = "setTemp"
 document.getElementById("setTemp").style.backgroundColor = "#383838";
 document.getElementById("setTemp").style.borderColor = "#484848";
@@ -61,17 +62,25 @@ document.addEventListener("onwheel" in document ? "wheel" : "mousewheel", functi
     if (selectedElement == "setSpeed") {
 
         speed = parseFloat(document.getElementById("setSpeed").getAttribute("speed"));
-        document.getElementById(selectedElement).setAttribute("speed", Math.round(Math.max(Math.min(speed + (scrollLength / 10), 2), 0.1) * 10) / 10);
+        document.getElementById(selectedElement).setAttribute("speed", Math.round(Math.max(Math.min(speed + (scrollLength / 10), 5), 0.1) * 10) / 10);
         document.getElementById("setSpeed").firstChild.innerHTML = `${speed}x`;
 
     } else if (!(selectedElement == null)) {
-
-        temp = parseInt(document.getElementById(selectedElement).getAttribute("temp"));
-        document.getElementById(selectedElement).setAttribute("temp", Math.max(Math.min(temp + scrollLength, 100), 0));
-        if (selectedElement == "setTemp") {
-            selectedTemp = temp;
-            document.getElementById("setTemp").firstChild.innerHTML = selectedTemp;
-        };
+         if (viewMode == "temp" | viewMode == "color") {
+            temp = parseInt(document.getElementById(selectedElement).getAttribute("temp"));
+            document.getElementById(selectedElement).setAttribute("temp", Math.max(Math.min(temp + scrollLength, 100), 0));
+            if (selectedElement == "setTemp") {
+                selectedTemp = temp;
+                document.getElementById("setTemp").firstChild.innerHTML = selectedTemp;
+            };
+         } else if (viewMode == "heatCap") {
+            temp = parseInt(document.getElementById(selectedElement).getAttribute("heatCap"));
+            document.getElementById(selectedElement).setAttribute("heatCap", Math.max(Math.min(temp + scrollLength, 10), 1));
+            if (selectedElement == "setTemp") {
+                selectedTemp = temp;
+                document.getElementById("setTemp").firstChild.innerHTML = selectedTemp;
+            };
+         };
     };
 
 
@@ -93,6 +102,7 @@ for (let i = 1; i < (cells + 1); i++) {
     newCell.setAttribute("onmouseout", "resetElement()");
     newCell.setAttribute("onmousedown", "clickSet(id)");
     newCell.setAttribute("temp", 50);
+    newCell.setAttribute("heatCap", 5);
     newP = document.createElement("p");
     newP.id = `${cloneIt - 1}p`;
     newP.innerHTML = "50";
@@ -108,7 +118,12 @@ function setElement(id) {
 
     if (mouseDown) {
         if (clickMode == "setTemp") {
-            document.getElementById(id).setAttribute("temp", selectedTemp);
+            if (viewMode == "temp" | viewMode == "color") {
+                document.getElementById(id).setAttribute("temp", selectedTemp);
+            } else if (viewMode == "heatCap") {
+                document.getElementById(id).setAttribute("heatCap", selectedTemp);
+            };
+            
         };
     };
 
@@ -163,19 +178,38 @@ function calcTransfer(i) {
     temp = element.getAttribute("temp");
 
     if (i > maxX) {
-        tempSum = tempSum + ((document.getElementById(`${i - maxX}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed)
+        tempSum = tempSum + ((document.getElementById(`${i - maxX}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed) / (document.getElementById(i).getAttribute("heatCap") / 5);
     };
 
     if (i <= (cells - maxX)) {
-        tempSum = tempSum + ((document.getElementById(`${i + maxX}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed)
+        tempSum = tempSum + ((document.getElementById(`${i + maxX}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed) / (document.getElementById(i).getAttribute("heatCap") / 5);
     };
 
     if ((i % maxX) != 1) {
-        tempSum = tempSum + ((document.getElementById(`${i - 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed)
+        tempSum = tempSum + ((document.getElementById(`${i - 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed) / (document.getElementById(i).getAttribute("heatCap") / 5);
     };
 
-    if (!(i % maxX) == 0) {
-        tempSum = tempSum + ((document.getElementById(`${i + 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed)
+    if ((i % maxX) != 0) {
+        tempSum = tempSum + ((document.getElementById(`${i + 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed) / (document.getElementById(i).getAttribute("heatCap") / 5);
+    };
+
+    if (omni) {
+        if (i > maxX & (i % maxX) != 1) {
+            tempSum = tempSum + ((document.getElementById(`${i - maxX - 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed / 1.41421356237) / (document.getElementById(i).getAttribute("heatCap") / 5);
+        };
+    
+        if (i <= (cells - maxX) & (i % maxX) != 1) {
+            tempSum = tempSum + ((document.getElementById(`${i + maxX - 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed / 1.41421356237) / (document.getElementById(i).getAttribute("heatCap") / 5);
+        };
+        
+        if (i > maxX & (i % maxX) != 0) {
+            tempSum = tempSum + ((document.getElementById(`${i - maxX + 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed / 1.41421356237) / (document.getElementById(i).getAttribute("heatCap") / 5);
+        };
+    
+        if (i <= (cells - maxX) & (i % maxX) != 0) {
+            tempSum = tempSum + ((document.getElementById(`${i + maxX + 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed / 1.41421356237) / (document.getElementById(i).getAttribute("heatCap") / 5);
+        };
+        
     };
 
     element.setAttribute("calcTemp", tempSum)
@@ -194,24 +228,38 @@ function setTransfer(i) {
 // set decorative colors of all cells and 
 function setColor(i) {
     element = document.getElementById(i);
+
     temp = element.getAttribute("temp");
     let r = Math.round((temp * 1.546354488838) ** 1.1);
     let b = Math.round(((100 - temp) * 1.546354488838) ** 1.1);
+    let g = Math.max(48, Math.max(r, b) / 3)
 
-    if (element.hasAttribute("source")) {
-        element.style.borderColor = "#202020";
-    } else {
-        element.style.borderColor = `rgb(${r}, 64, ${b})`;
+    if (viewMode == "temp" | viewMode == "color") {
+
+        if (element.hasAttribute("source")) {
+            element.style.borderColor = "#202020";
+        } else {
+            element.style.borderColor = `rgb(${r}, ${g}, ${b})`;
+        };
+
+        document.getElementById(`${i}p`).style.color = `rgb(${r}, ${g}, ${b})`;
+        document.getElementById(`${i}p`).innerHTML = Math.round(temp);
+    } else if (viewMode == "heatCap") {
+        temp = element.getAttribute("heatCap");
+        let g = temp * 12.8 + 63
+
+        element.style.borderColor = `rgb(0, ${g}, 0)`;
+        document.getElementById(`${i}p`).style.color = `rgb(0, ${g}, 0)`;
+        document.getElementById(`${i}p`).innerHTML = Math.round(temp);
+
     };
 
-    document.getElementById(`${i}p`).style.color = `rgb(${r}, 64, ${b})`;
-    document.getElementById(`${i}p`).innerHTML = Math.round(temp);
 
-    if (viewMode == 1) {
-        document.getElementById(i).style.backgroundColor = `rgb(${r}, 64, ${b})`;
+    if (viewMode == "color") {
+        document.getElementById(i).style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
     } else {
         document.getElementById(i).style.backgroundColor = `#303030`;
-    }
+    };
 };
 
 
@@ -235,8 +283,18 @@ document.addEventListener('keydown', (event) => {
 
 // control panel
 function set() {
-    for (let i = 1; i < (cells + 1); i++) {
-        document.getElementById(i).setAttribute("temp", selectedTemp);
+    if (viewMode == "temp") {
+
+        for (let i = 1; i < (cells + 1); i++) {
+            document.getElementById(i).setAttribute("temp", selectedTemp);
+        };
+
+
+    } else if (viewMode == "heatCap") {
+
+        for (let i = 1; i < (cells + 1); i++) {
+            document.getElementById(i).setAttribute("heatCap", selectedTemp);
+        };
     };
 };
 
@@ -252,10 +310,14 @@ function pause() {
 
 function clickSet(id) {
     if (clickMode == "setTemp") {
-        document.getElementById(id).setAttribute("temp", selectedTemp);
+        if (viewMode == "temp" | viewMode == "color") {
+            document.getElementById(id).setAttribute("temp", selectedTemp);
+        } else if (viewMode == "heatCap") {
+            document.getElementById(id).setAttribute("heatCap", selectedTemp);
+        };
     } else if (clickMode == "source") {
         if (document.getElementById(id).hasAttribute("source")) {
-            document.getElementById(id).removeAttribute("source")
+            document.getElementById(id).removeAttribute("source");
         } else {
             document.getElementById(id).setAttribute("source", true);
         };
@@ -270,7 +332,26 @@ document.body.onmousedown = function() {
 };
 
 function view() {
-    viewMode = (viewMode + 1) % 2;
+    viewModeIndex = (viewModeIndex + 1) % 3;
+
+    switch (viewModeIndex) {
+        case 0:
+            viewMode = "temp";
+            break;
+        
+        case 1:
+            viewMode = "heatCap";
+            setTemp();
+            selectedTemp = Math.max(1, Math.min(10, selectedTemp));
+            document.getElementById("setTemp").firstChild.innerHTML = selectedTemp;
+            document.getElementById("setTemp").setAttribute("heatCap", selectedTemp);
+            document.getElementById("setTemp").setAttribute("temp", selectedTemp);
+            break;
+        
+        case 2:
+            viewMode = "color";
+            break;
+    };
 };
 
 function setTemp() {
@@ -282,12 +363,31 @@ function setTemp() {
 };
 
 function source() {
-    clickMode = "source";
-    document.getElementById("source").style.backgroundColor = "#383838"
-    document.getElementById("source").style.borderColor = "#484848"
-    document.getElementById("setTemp").style.backgroundColor = "#404040"
-    document.getElementById("setTemp").style.borderColor = "#505050"
+    if (viewMode != "heatCap") {
+        clickMode = "source";
+        document.getElementById("source").style.backgroundColor = "#383838";
+        document.getElementById("source").style.borderColor = "#484848";
+        document.getElementById("setTemp").style.backgroundColor = "#404040";
+        document.getElementById("setTemp").style.borderColor = "#505050";
+    };
 };
+
+function setOmni() {
+    if (omni) {
+        omni = false;
+        document.getElementById("omni").style.backgroundColor = "#404040";
+        document.getElementById("omni").style.borderColor = "#505050";
+
+    } else {
+        omni = true;
+        document.getElementById("omni").style.backgroundColor = "#383838";
+        document.getElementById("omni").style.borderColor = "#484848";
+
+    };
+};
+
+
+
 
 
 setInterval(cycle, cycleMs);
