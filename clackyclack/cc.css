@@ -1,0 +1,55 @@
+body {
+    background-color: #333;
+}
+
+
+
+#center {
+    position: fixed;
+    height: 100%;
+    width: 100%;
+    top: 0px;
+    left: 0px;
+    padding: 0px;
+    margin: 0px;
+    display: flex;
+}
+
+
+
+.block {
+    height: 200px;
+    width: 200px;
+    border-style: solid;
+    border-width: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 50%;
+    background-color: #555;
+    border-color: #444;
+    position: fixed;
+}
+
+
+
+#leftBlock {
+    left: 30%;
+}
+
+
+
+#rightBlock {
+    left: 80%;
+}
+
+
+
+.block p {
+    font-size: 400%;
+    margin: 0px;
+    padding: 0px;
+    user-select: none;
+}
+
+
