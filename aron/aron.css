@@ -10,7 +10,7 @@
     position: fixed;
 }
 
-#grid {
+#gridConatiner {
     display: grid;
     grid-template-columns: repeat(100, minmax(0, 1fr));
     grid-template-rows: repeat(100, minmax(0, 1fr));
@@ -19,8 +19,9 @@
     border-color: blue;    
 }
 
-.grid {
+.gridContainer {
     border-style: solid;
-    border-width: 10px;
+    border-width: 1px;
     border-color: cornflowerblue;
+    
 }
