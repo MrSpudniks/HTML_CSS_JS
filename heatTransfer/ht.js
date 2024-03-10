@@ -10,8 +10,7 @@ let sim = false;
 let grid = document.getElementById("grid");
 const maxX = 15;
 const cells = maxX**2;
-const KA = 1;
-const D = 1;
+const transfer_speed = 1;
 let cycleMs = 5;
 let omni = false;
 let timeSinceLastScroll = 1;
@@ -20,7 +19,6 @@ let currentTime = 0;
 let lastCycle = 0;
 let scrollLength = 1;
 let cloneIt = 1;
-let hex = ["1","2","3","4","5","6","7","8","9","a","b","c","d","e","f"]
 let selectedElement = NaN;
 let selectedTemp = 50;
 let speed = 1.0;
@@ -31,8 +29,10 @@ grid.style.width = `${Math.min(viewH, viewW)}px`;
 grid.style.fontSize = `${Math.min(viewH, viewW)/50}px`;
 let mouseDown = false;
 let viewModeIndex = 0;
-let viewMode = "temp"
-let clickMode = "setTemp"
+let viewMode = "temp";
+let clickMode = "setTemp";
+let initialWallState = false;
+let initialWallIndex = "0";
 document.getElementById("setTemp").style.backgroundColor = "#383838";
 document.getElementById("setTemp").style.borderColor = "#484848";
 
@@ -101,6 +101,7 @@ for (let i = 1; i < (cells + 1); i++) {
     newCell.setAttribute("onmouseover", "setElement(id)");
     newCell.setAttribute("onmouseout", "resetElement()");
     newCell.setAttribute("onmousedown", "clickSet(id)");
+    newCell.setAttribute("onmouseup", "clickReset()");
     newCell.setAttribute("temp", 50);
     newCell.setAttribute("heatCap", 5);
     newP = document.createElement("p");
@@ -124,6 +125,12 @@ function setElement(id) {
                 document.getElementById(id).setAttribute("heatCap", selectedTemp);
             };
             
+        } else if (clickMode == "wall") {
+            if (initialWallState) {
+                document.getElementById(id).removeAttribute("wall");
+            } else {
+                document.getElementById(id).setAttribute("wall", true);
+            };
         };
     };
 
@@ -152,7 +159,7 @@ function cycle() {
         };
 
         for (let i = 1; i < (cells + 1); i++) {
-            if (!document.getElementById(i).hasAttribute("source")) {
+            if (!document.getElementById(i).hasAttribute("source") & !document.getElementById(i).hasAttribute("wall")) {
                 setTransfer(i);
             };
         };
@@ -178,36 +185,52 @@ function calcTransfer(i) {
     temp = element.getAttribute("temp");
 
     if (i > maxX) {
-        tempSum = tempSum + ((document.getElementById(`${i - maxX}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed) / (document.getElementById(i).getAttribute("heatCap") / 5);
+        if (!document.getElementById(`${i - maxX}`).hasAttribute("wall")) {
+            tempSum = tempSum + ((document.getElementById(`${i - maxX}`).getAttribute("temp") - temp) * transfer_speed / (1000/cycleMs) * speed) / (document.getElementById(i).getAttribute("heatCap") / 5);
+        };
     };
 
     if (i <= (cells - maxX)) {
-        tempSum = tempSum + ((document.getElementById(`${i + maxX}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed) / (document.getElementById(i).getAttribute("heatCap") / 5);
+        if (!document.getElementById(`${i + maxX}`).hasAttribute("wall")) {
+            tempSum = tempSum + ((document.getElementById(`${i + maxX}`).getAttribute("temp") - temp) * transfer_speed / (1000/cycleMs) * speed) / (document.getElementById(i).getAttribute("heatCap") / 5);
+        };
     };
 
     if ((i % maxX) != 1) {
-        tempSum = tempSum + ((document.getElementById(`${i - 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed) / (document.getElementById(i).getAttribute("heatCap") / 5);
+        if (!document.getElementById(`${i - 1}`).hasAttribute("wall")) {
+            tempSum = tempSum + ((document.getElementById(`${i - 1}`).getAttribute("temp") - temp) * transfer_speed / (1000/cycleMs) * speed) / (document.getElementById(i).getAttribute("heatCap") / 5);
+        };
     };
 
     if ((i % maxX) != 0) {
-        tempSum = tempSum + ((document.getElementById(`${i + 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed) / (document.getElementById(i).getAttribute("heatCap") / 5);
+        if (!document.getElementById(`${i + 1}`).hasAttribute("wall")) {
+            tempSum = tempSum + ((document.getElementById(`${i + 1}`).getAttribute("temp") - temp) * transfer_speed / (1000/cycleMs) * speed) / (document.getElementById(i).getAttribute("heatCap") / 5);
+        };
     };
 
     if (omni) {
         if (i > maxX & (i % maxX) != 1) {
-            tempSum = tempSum + ((document.getElementById(`${i - maxX - 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed / 1.41421356237) / (document.getElementById(i).getAttribute("heatCap") / 5);
+            if (!document.getElementById(`${i - maxX - 1}`).hasAttribute("wall")) {
+                tempSum = tempSum + ((document.getElementById(`${i - maxX - 1}`).getAttribute("temp") - temp) * transfer_speed / (1000/cycleMs) * speed / 1.41421356237) / (document.getElementById(i).getAttribute("heatCap") / 5);
+            };
         };
     
         if (i <= (cells - maxX) & (i % maxX) != 1) {
-            tempSum = tempSum + ((document.getElementById(`${i + maxX - 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed / 1.41421356237) / (document.getElementById(i).getAttribute("heatCap") / 5);
+            if (!document.getElementById(`${i + maxX - 1}`).hasAttribute("wall")) {
+                tempSum = tempSum + ((document.getElementById(`${i + maxX - 1}`).getAttribute("temp") - temp) * transfer_speed / (1000/cycleMs) * speed / 1.41421356237) / (document.getElementById(i).getAttribute("heatCap") / 5);
+            };
         };
         
         if (i > maxX & (i % maxX) != 0) {
-            tempSum = tempSum + ((document.getElementById(`${i - maxX + 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed / 1.41421356237) / (document.getElementById(i).getAttribute("heatCap") / 5);
+            if (!document.getElementById(`${i - maxX + 1}`).hasAttribute("wall")) {
+                tempSum = tempSum + ((document.getElementById(`${i - maxX + 1}`).getAttribute("temp") - temp) * transfer_speed / (1000/cycleMs) * speed / 1.41421356237) / (document.getElementById(i).getAttribute("heatCap") / 5);
+            };
         };
     
         if (i <= (cells - maxX) & (i % maxX) != 0) {
-            tempSum = tempSum + ((document.getElementById(`${i + maxX + 1}`).getAttribute("temp") - temp) * KA / D / (1000/cycleMs) * speed / 1.41421356237) / (document.getElementById(i).getAttribute("heatCap") / 5);
+            if (!document.getElementById(`${i + maxX + 1}`).hasAttribute("wall")) {
+                tempSum = tempSum + ((document.getElementById(`${i + maxX + 1}`).getAttribute("temp") - temp) * transfer_speed / (1000/cycleMs) * speed / 1.41421356237) / (document.getElementById(i).getAttribute("heatCap") / 5);
+            };
         };
         
     };
@@ -225,7 +248,7 @@ function setTransfer(i) {
 
 
 
-// set decorative colors of all cells and 
+// set decorative colors of all cells
 function setColor(i) {
     element = document.getElementById(i);
 
@@ -259,6 +282,12 @@ function setColor(i) {
         document.getElementById(i).style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
     } else {
         document.getElementById(i).style.backgroundColor = `#303030`;
+    };
+
+    if (element.hasAttribute("wall")) {
+        element.style.borderColor = "#202020";
+        document.getElementById(`${i}p`).style.color = "#202020";
+        element.style.backgroundColor = "#202020";
     };
 };
 
@@ -315,13 +344,32 @@ function clickSet(id) {
         } else if (viewMode == "heatCap") {
             document.getElementById(id).setAttribute("heatCap", selectedTemp);
         };
+
     } else if (clickMode == "source") {
         if (document.getElementById(id).hasAttribute("source")) {
             document.getElementById(id).removeAttribute("source");
         } else {
             document.getElementById(id).setAttribute("source", true);
         };
+        
+    } else if (clickMode == "wall") {
+        if (initialWallIndex != id) {
+            if (initialWallIndex == "0") {
+                initialWallIndex = id
+                initialWallState = document.getElementById(id).hasAttribute("wall");
+            };
+
+            if (initialWallState) {
+                document.getElementById(id).removeAttribute("wall");
+            } else {
+                document.getElementById(id).setAttribute("wall", true);
+            };
+        };
     };
+};
+
+function clickReset() {
+    initialWallIndex = "0";
 };
 
 document.body.onmousedown = function() { 
@@ -360,16 +408,30 @@ function setTemp() {
     document.getElementById("setTemp").style.borderColor = "#484848";
     document.getElementById("source").style.backgroundColor = "#404040";
     document.getElementById("source").style.borderColor = "#505050";
+    document.getElementById("wall").style.backgroundColor = "#404040";
+    document.getElementById("wall").style.borderColor = "#505050";
 };
 
 function source() {
     if (viewMode != "heatCap") {
         clickMode = "source";
-        document.getElementById("source").style.backgroundColor = "#383838";
-        document.getElementById("source").style.borderColor = "#484848";
         document.getElementById("setTemp").style.backgroundColor = "#404040";
         document.getElementById("setTemp").style.borderColor = "#505050";
+        document.getElementById("source").style.backgroundColor = "#383838";
+        document.getElementById("source").style.borderColor = "#484848";
+        document.getElementById("wall").style.backgroundColor = "#404040";
+        document.getElementById("wall").style.borderColor = "#505050";
     };
+};
+
+function wall() {
+    clickMode = "wall";
+    document.getElementById("setTemp").style.backgroundColor = "#404040";
+    document.getElementById("setTemp").style.borderColor = "#505050";
+    document.getElementById("source").style.backgroundColor = "#404040";
+    document.getElementById("source").style.borderColor = "#505050";
+    document.getElementById("wall").style.backgroundColor = "#383838";
+    document.getElementById("wall").style.borderColor = "#484848";
 };
 
 function setOmni() {
